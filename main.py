@@ -6,6 +6,7 @@ import lxml.html
 import pdfkit
 import re
 import sys
+import argparse
 
 javascript_delay = 2500
 
@@ -29,7 +30,6 @@ class CFProblem:
         self.dom.xpath('//head')[0].append(style_tag)
 
     def save_as_pdf(self):
-        print("saving problem %s as pdf" % self.problem_id)
         options = {
             'page-size': 'A4',
             'margin-top': '0.1in',
@@ -38,10 +38,12 @@ class CFProblem:
             'margin-left': '0.1in',
             'encoding': "UTF-8",
             'javascript-delay': str(javascript_delay),
-            'no-outline': None
+            'no-outline': None,
+            'quiet': None,
         }
         html_source = lxml.html.tostring(self.dom).decode('utf-8')
         pdfkit.from_string(html_source, self.pdf_name, options=options)
+        print("saved problem %s as pdf %s" % (self.problem_id, self.pdf_name))
 
 class CFContest:
     def get_contest_id(url):
@@ -59,18 +61,41 @@ class CFContest:
             self.problems.append(CFProblem("https://" + base + problem_a_tag.attrib['href']))
 
     def save_as_pdf(self):
-        print("saving contest %s as pdf" % self.contest_id)
         merger = PyPDF2.PdfFileMerger()
         for problem in self.problems:
             problem.save_as_pdf()
             merger.append(problem.pdf_name)
         merger.write(self.pdf_name)
         merger.close()
+        print("saved contest %s as pdf %s" % (self.contest_id, self.pdf_name))
 
 if __name__ == '__main__':
-    url = 'https://codeforces.com/contest/1285/'
-    contest = CFContest(url)
-    contest.save_as_pdf()
-    #url = 'https://codeforces.com/contest/1285/problem/A'
-    #prob = CFProblem(url)
-    #prob.save_as_pdf()
+    parser = argparse.ArgumentParser(description='This scirpt is to generate PDF of problems on codeforces.')
+    parser.add_argument('contest_id', \
+        action='store', \
+        nargs=None, \
+        const=None, \
+        default=None, \
+        type=str, \
+        choices=None, \
+        help='Contest ID', \
+        metavar=None)
+    parser.add_argument('-p', '--problems', \
+        action='store', \
+        nargs='+', \
+        const=None, \
+        default=None, \
+        type=str, \
+        choices=None, \
+        help='Problems', \
+        metavar=None)
+    args = parser.parse_args()
+    if args.problems == None:
+        url = 'https://codeforces.com/contest/%s/' % args.contest_id
+        contest = CFContest(url)
+        contest.save_as_pdf()
+    else:
+        for problem_id in args.problems:
+            url = 'https://codeforces.com/contest/%s/problem/%s' % (args.contest_id, problem_id)
+            problem = CFProblem(url)
+            problem.save_as_pdf()
