@@ -1,6 +1,5 @@
 from urllib import request
 from urllib.parse import urlparse
-from bs4 import BeautifulSoup
 import PyPDF2
 import lxml.html
 import pdfkit
@@ -21,13 +20,20 @@ class CFProblem:
         self.problem_id = CFProblem.get_problem_id(url)
         self.pdf_name = 'CF' + self.problem_id + '.pdf'
         self.dom = lxml.html.fromstring(html.read())
+        self.contest_name = self.dom.xpath('//*[@id="sidebar"]/div[1]/table/tbody/tr[1]/th/a')[0].text
 
         base_tag = lxml.html.Element('base', href="https://%s" % urlparse(url).netloc)
         style_tag = lxml.html.Element('style')
         style_tag.text = '#pageContent>*:not(.problemindexholder) { display: none !important; } #header { display: none; } #footer { display: none; } .roundbox.menu-box { display: none; } #sidebar { display: none; } #body > br:nth-child(8) { display: none; } #pageContent { margin-right: 0 !important; } #body { padding-top: 0; } #MathJax_Message { display: none !important; }'
-        html_tag = self.dom.xpath("//html")
         self.dom.xpath('//html')[0].insert(0, base_tag)
         self.dom.xpath('//head')[0].append(style_tag)
+
+        contest_tag = lxml.html.Element('div')
+        contest_tag.text = self.contest_name
+        #contest_tag.attrib['class'] = 'title'
+        contest_tag.attrib['style'] = 'text-align: left;'
+        self.dom.xpath('//*[@class="header"]')[0].insert(0, contest_tag)
+
 
     def save_as_pdf(self):
         options = {
@@ -39,7 +45,7 @@ class CFProblem:
             'encoding': "UTF-8",
             'javascript-delay': str(javascript_delay),
             'no-outline': None,
-            'quiet': None,
+            #'quiet': None,
         }
         html_source = lxml.html.tostring(self.dom).decode('utf-8')
         pdfkit.from_string(html_source, self.pdf_name, options=options)
