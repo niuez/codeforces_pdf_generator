@@ -6,6 +6,7 @@ import pdfkit
 import re
 import sys
 import argparse
+import os
 
 javascript_delay = 2500
 
@@ -73,6 +74,10 @@ class CFContest:
             merger.append(problem.pdf_name)
         merger.write(self.pdf_name)
         merger.close()
+
+        for problem in self.problems:
+            os.remove("./" + str(problem.pdf_name))
+            
         print("saved contest %s as pdf %s" % (self.contest_id, self.pdf_name))
 
 if __name__ == '__main__':
